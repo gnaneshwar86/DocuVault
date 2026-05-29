@@ -68,7 +68,17 @@ public class NotificationService {
     }
 
     /** Retrieve all notifications ordered by newest */
-    public List<Notification> getAll() {
-        return notificationRepository.findAllByOrderByTimestampDesc();
+    }
+
+    // Mark all notifications as read
+    public void markAllAsRead() {
+        List<Notification> all = notificationRepository.findAll();
+        all.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(all);
+    }
+
+    // Count unread notifications
+    public long unreadCount() {
+        return notificationRepository.countByReadFalse();
     }
 }

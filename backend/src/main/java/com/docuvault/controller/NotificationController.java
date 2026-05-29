@@ -59,5 +59,25 @@ public class NotificationController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         notificationService.delete(id);
         return ResponseEntity.noContent().build();
+
+    @PutMapping("/read-all")
+    public ResponseEntity<Map<String, Object>> markAllAsRead() {
+        notificationService.markAllAsRead();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", null,
+                "message", "All notifications marked as read"
+        ));
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Map<String, Object>> unreadCount() {
+        long count = notificationService.unreadCount();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", Map.of("unreadCount", count),
+                "message", "Unread notification count"
+        ));
+    }
     }
 }
