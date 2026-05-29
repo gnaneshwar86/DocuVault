@@ -20,12 +20,14 @@ import java.util.UUID;
 @Service
 public class FileStorageService {
 
+    private final NotificationService notificationService;
     private final Path rootLocation = Paths.get("./uploads");
     private final UploadedFileRepository fileRepository;
 
     @Autowired
-    public FileStorageService(UploadedFileRepository fileRepository) {
+    public FileStorageService(UploadedFileRepository fileRepository, NotificationService notificationService) {
         this.fileRepository = fileRepository;
+        this.notificationService = notificationService;
     }
 
     @PostConstruct
@@ -196,9 +198,11 @@ public class FileStorageService {
      */
     @Async("taskExecutor")
     public void processAsyncUpload(List<FilePayload> payloads) {
+        // Track filenames for notification
+        List<String> fileNames = new java.util.ArrayList<>();
         for (FilePayload payload : payloads) {
             try {
-                // Simulate slightly longer processing if needed, or write straight to disk
+                // Write file to disk
                 Path targetPath = Paths.get(payload.getStoragePath());
                 Files.write(targetPath, payload.getBytes());
 
@@ -207,6 +211,8 @@ public class FileStorageService {
                     entity.setStatus("COMPLETED");
                     fileRepository.save(entity);
                 });
+                // Collect sanitized filename for notification
+                fileNames.add(payload.getSanitizedFileName());
             } catch (IOException e) {
                 // Mark DB state as FAILED
                 fileRepository.findById(payload.getDbId()).ifPresent(entity -> {
@@ -214,6 +220,10 @@ public class FileStorageService {
                     fileRepository.save(entity);
                 });
             }
+        }
+        // After processing all files, emit a bulk upload notification
+        if (!payloads.isEmpty()) {
+            notificationService.createBulkUploadNotification(payloads.size(), fileNames);
         }
     }
 }
